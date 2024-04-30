@@ -2,6 +2,7 @@ variable "hcloud_token" {
   description = "Hetzner Cloud API Token."
   type        = string
   sensitive   = true
+  default     = ""
 }
 variable "hetzner_dns_api_key" {
   description = "Hetzner DNS Zone API Key."
@@ -251,7 +252,6 @@ variable "agent_nodepools" {
     error_message = "Set either nodes or count per agent_nodepool, not both."
   }
 
-
   validation {
     condition = alltrue([for agent_nodepool in var.agent_nodepools :
       alltrue([for agent_key, agent_node in coalesce(agent_nodepool.nodes, {}) : can(tonumber(agent_key)) && tonumber(agent_key) == floor(tonumber(agent_key)) && 0 <= tonumber(agent_key) && tonumber(agent_key) < 154])
@@ -265,7 +265,6 @@ variable "agent_nodepools" {
     # 154 because the private ip is derived from tonumber(key) + 101. See private_ipv4 in agents.tf
     error_message = "Hetzner does not support networks with more than 100 servers."
   }
-
 }
 
 variable "cluster_autoscaler_image" {
@@ -477,6 +476,30 @@ variable "traefik_values" {
   type        = string
   default     = ""
   description = "Additional helm values file to pass to Traefik as 'valuesContent' at the HelmChart."
+}
+
+variable "expose_traefik_dashboard" {
+  type        = bool
+  default     = true
+  description = "Expose traefik dashboard on the base domain with subpath."
+}
+
+variable "traefik_dashboard_subpath" {
+  type        = string
+  default     = "/traefik"
+  description = "Subpath to expose traefik dashboard."
+}
+
+variable "basic_auth_user" {
+  type        = string
+  default     = "admin"
+  description = "Basic auth user to expose unprotected resources."
+}
+
+variable "basic_auth_password" {
+  type        = string
+  default     = "password"
+  description = "Basic auth password to expose unprotected resources."
 }
 
 variable "nginx_version" {

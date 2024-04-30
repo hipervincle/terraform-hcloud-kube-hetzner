@@ -166,6 +166,20 @@ resource "null_resource" "kustomization" {
     destination = "/var/post_install/traefik_ingress.yaml"
   }
 
+  # Upload traefik dashboard config
+  provisioner "file" {
+    content = templatefile(
+      "${path.module}/templates/traefik_dashboard.yaml.tpl",
+      {
+        expose                       = var.expose_traefik_dashboard
+        base_domain                  = var.base_domain
+        basic_auth_hash              = "${var.basic_auth_user}:${base64encode(var.basic_auth_password)}"
+        subpath                      = var.traefik_dashboard_subpath
+        ingress_controller_namespace = local.ingress_controller_namespace
+    })
+    destination = "/var/post_install/traefik_dashboard.yaml"
+  }
+
   # Upload nginx ingress controller config
   provisioner "file" {
     content = templatefile(
@@ -364,6 +378,11 @@ resource "null_resource" "kustomization" {
         "echo 'Waiting for the cert-manager webhooks to become available...'",
         "cmctl check api --wait=2m --kubeconfig /etc/rancher/k3s/k3s.yaml 2> /dev/null",
         "kubectl -n cert-manager apply -f /var/post_install/wildcard_cert.yaml",
+      ] : [],
+      var.enable_cluster_issuers && var.enable_cert_manager && var.expose_traefik_dashboard ? [
+        "echo 'Waiting for the wildcard domain cert to become available...'",
+        "kubectl -n cert-manager wait --for=condition=Ready certs/wildcard-domain 2> /dev/null",
+        "kubectl -n ${local.ingress_controller_namespace} apply -f /var/post_install/traefik_dashboard.yaml"
       ] : [],
       local.has_external_load_balancer ? [] : [
         <<-EOT
