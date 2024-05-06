@@ -89,7 +89,7 @@ locals {
       var.enable_csi_driver_smb ? ["csi-driver-smb.yaml"] : [],
       var.enable_cert_manager || var.enable_rancher ? ["cert_manager.yaml"] : [],
       var.enable_rancher ? ["rancher.yaml"] : [],
-      var.rancher_registration_manifest_url != "" ? [var.rancher_registration_manifest_url] : []
+      var.rancher_registration_manifest_url != "" ? [var.rancher_registration_manifest_url] : [],
     ),
     patches = [
       {
@@ -534,6 +534,23 @@ persistence:
   defaultFsType: ${var.longhorn_fstype}
   defaultClassReplicaCount: ${var.longhorn_replica_count}
   %{if var.disable_hetzner_csi~}defaultClass: true%{else~}defaultClass: false%{endif~}
+%{if local.is_single_node_cluster}
+csi:
+  attacherReplicaCount: 1
+  provisionerReplicaCount: 1
+  resizerReplicaCount: 1
+  snapshotterReplicaCount: 1
+longhornUI:
+  replicas: 1
+%{else}
+csi:
+  attacherReplicaCount: ${var.longhorn_replica_count}
+  provisionerReplicaCount: ${var.longhorn_replica_count}
+  resizerReplicaCount: ${var.longhorn_replica_count}
+  snapshotterReplicaCount: ${var.longhorn_replica_count}
+longhornUI:
+  replicas: ${var.longhorn_replica_count}
+%{endif}
   EOT
 
   csi_driver_smb_values = var.csi_driver_smb_values != "" ? var.csi_driver_smb_values : <<EOT
