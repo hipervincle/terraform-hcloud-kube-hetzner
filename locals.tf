@@ -592,6 +592,9 @@ image:
   tag: ${var.traefik_image_tag}
 deployment:
   replicas: ${local.ingress_replica_count}
+ingressRoute:
+  dashboard:
+    enabled: false 
 globalArguments: []
 service:
   enabled: true
@@ -614,9 +617,9 @@ service:
     "load-balancer.hetzner.cloud/hostname": "${var.lb_hostname}"
 %{endif~}
 %{endif~}
+%{if var.traefik_redirect_to_https~}
 ports:
   web:
-%{if var.traefik_redirect_to_https~}
     redirectTo:
       port: websecure
 %{endif~}

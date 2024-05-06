@@ -17,5 +17,9 @@ terraform {
       source  = "tenstad/remote"
       version = ">= 0.1.2"
     }
+    htpasswd = {
+      source = "loafoe/htpasswd"
+      version = "1.2.0"
+    }
   }
 }

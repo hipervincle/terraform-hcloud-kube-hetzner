@@ -480,6 +480,35 @@ variable "traefik_values" {
   default     = ""
   description = "Additional helm values file to pass to Traefik as 'valuesContent' at the HelmChart."
 }
+variable "expose_traefik_dashboard" {
+  type        = bool
+  default     = true
+  description = "Expose traefik dashboard on the base domain with subpath."
+}
+
+variable "expose_traefik_dashboard_https" {
+  type = bool
+  default = false
+  description = "Expose traefik dashboard securely via https."
+}
+
+variable "traefik_dashboard_subpath" {
+  type        = string
+  default     = "/traefik"
+  description = "Subpath to expose traefik dashboard."
+}
+
+variable "basic_auth_user" {
+  type        = string
+  default     = "admin"
+  description = "Basic auth user to expose unprotected resources."
+}
+
+variable "basic_auth_password" {
+  type        = string
+  default     = "password"
+  description = "Basic auth password to expose unprotected resources."
+}
 
 variable "nginx_version" {
   type        = string

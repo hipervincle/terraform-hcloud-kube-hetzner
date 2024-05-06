@@ -18,7 +18,9 @@ resource "hcloud_load_balancer" "cluster" {
     ]
   }
 }
-
+resource "htpasswd_password" "hash" {
+  password = var.basic_auth_password
+}
 
 resource "null_resource" "first_control_plane" {
   connection {
@@ -165,6 +167,21 @@ resource "null_resource" "kustomization" {
         target_namespace = local.ingress_controller_namespace
     })
     destination = "/var/post_install/traefik_ingress.yaml"
+  }
+
+  # Upload traefik dashboard config
+  provisioner "file" {
+    content = templatefile(
+      "${path.module}/templates/traefik_dashboard.yaml.tpl",
+      {
+        base_domain                  = var.base_domain
+        basic_auth_hash              = base64encode("${var.basic_auth_user}:${htpasswd_password.hash.apr1}")
+        reflector_enabled            = var.enable_reflector
+        expose_https                 = var.expose_traefik_dashboard_https
+        subpath                      = var.traefik_dashboard_subpath
+        ingress_controller_namespace = local.ingress_controller_namespace
+    })
+    destination = "/var/post_install/traefik_dashboard.yaml"
   }
 
   # Upload nginx ingress controller config
@@ -366,6 +383,11 @@ resource "null_resource" "kustomization" {
         "cmctl check api --wait=2m --kubeconfig /etc/rancher/k3s/k3s.yaml 2> /dev/null",
         "kubectl -n cert-manager apply -f /var/post_install/wildcard_cert.yaml",
       ] : [],
+      var.expose_traefik_dashboard ? concat(var.expose_traefik_dashboard_https && var.enable_cluster_issuers ? [
+        "echo 'Waiting for the wildcard domain cert to become available...'",
+        "kubectl -n cert-manager wait --for condition=Ready certs/wildcard-domain --timeout=5m 2> /dev/null",
+      ] : [], 
+      ["kubectl -n ${local.ingress_controller_namespace} apply -f /var/post_install/traefik_dashboard.yaml"] ) : [],
       local.has_external_load_balancer ? [] : [
         <<-EOT
       timeout 360 bash <<EOF
