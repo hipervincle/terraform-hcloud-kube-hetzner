@@ -252,6 +252,20 @@ resource "null_resource" "kustomization" {
     destination = "/var/post_install/longhorn.yaml"
   }
 
+  # Upload the Longhorn UI config
+  provisioner "file" {
+    content = templatefile(
+      "${path.module}/templates/longhorn_ui.yaml.tpl",
+      {
+        base_domain                  = var.base_domain
+        subpath                      = var.longhorn_ui_subpath
+        expose_https                 = var.expose_longhorn_ui_https
+        ingress_controller_namespace = local.ingress_controller_namespace
+        longhorn_namespace           = var.longhorn_namespace
+    })
+    destination = "/var/post_install/longhorn_ui.yaml"
+  }
+
   # Upload the csi-driver-smb config
   provisioner "file" {
     content = templatefile(
@@ -277,12 +291,11 @@ resource "null_resource" "kustomization" {
     content = templatefile(
       "${path.module}/templates/cluster_issuers.yaml.tpl",
       {
-        cluster_name        = var.cluster_name
         common_name         = regex("[^.]+\\.[^.]+$", var.base_domain)
+        base_domain         = var.base_domain
         cert_manager_email  = var.cert_manager_email
-        ingress_controller  = var.ingress_controller
         hetzner_dns_api_key = base64encode(var.hetzner_dns_api_key)
-        target_namespace    = local.ingress_controller_namespace
+        ingress_controller  = var.ingress_controller
     })
     destination = "/var/post_install/cluster_issuers.yaml"
   }
@@ -386,8 +399,13 @@ resource "null_resource" "kustomization" {
       var.expose_traefik_dashboard ? concat(var.expose_traefik_dashboard_https && var.enable_cluster_issuers ? [
         "echo 'Waiting for the wildcard domain cert to become available...'",
         "kubectl -n cert-manager wait --for condition=Ready certs/wildcard-domain --timeout=5m 2> /dev/null",
-      ] : [], 
-      ["kubectl -n ${local.ingress_controller_namespace} apply -f /var/post_install/traefik_dashboard.yaml"] ) : [],
+        ] : [],
+      ["kubectl -n ${local.ingress_controller_namespace} apply -f /var/post_install/traefik_dashboard.yaml"]) : [],
+      var.expose_longhorn_ui ? concat(var.expose_longhorn_ui_https && var.enable_cluster_issuers ? [
+        "echo 'Waiting for the wildcard domain cert to become available...'",
+        "kubectl -n cert-manager wait --for condition=Ready certs/wildcard-domain --timeout=5m 2> /dev/null",
+        ] : [],
+      ["kubectl -n ${var.longhorn_namespace} apply -f /var/post_install/longhorn_ui.yaml"]) : [],
       local.has_external_load_balancer ? [] : [
         <<-EOT
       timeout 360 bash <<EOF

@@ -43,14 +43,14 @@ variable "ssh_port" {
 variable "ssh_public_key" {
   description = "SSH public Key."
   type        = string
-  default = null
+  default     = null
 }
 
 variable "ssh_private_key" {
   description = "SSH private Key."
   type        = string
   sensitive   = true
-  default = null
+  default     = null
 }
 
 variable "ssh_hcloud_key_label" {
@@ -487,8 +487,8 @@ variable "expose_traefik_dashboard" {
 }
 
 variable "expose_traefik_dashboard_https" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "Expose traefik dashboard securely via https."
 }
 
@@ -723,6 +723,23 @@ variable "longhorn_replica_count" {
     condition     = var.longhorn_replica_count > 0
     error_message = "Number of longhorn replicas can't be below 1."
   }
+}
+variable "expose_longhorn_ui" {
+  type        = bool
+  default     = true
+  description = "Whether or not to expose Longhorn UI."
+}
+
+variable "expose_longhorn_ui_https" {
+  type        = bool
+  default     = true
+  description = "Whether or not to expose Longhorn UI securely."
+}
+
+variable "longhorn_ui_subpath" {
+  type        = string
+  default     = "/longhorn"
+  description = "Longhorn UI subpath."
 }
 
 variable "longhorn_values" {
